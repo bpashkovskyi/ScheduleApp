@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Розклад занять</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/site.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container mt-4" style="max-width: 1400px;">
+        <div class="schedule-container">
+            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="scheduleForm">
+                                <div class="form-row">
+                                    <div class="form-group mb-3">
+                                        <label for="selectedBlock" class="form-label">Корпус</label>
+                                        <select id="selectedBlock" name="selectedBlock" class="form-select" required>
+                                            <option value="">Оберіть корпус</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group mb-3">
+                                        <label for="selectedRoom" class="form-label">Аудиторія</label>
+                                        <select id="selectedRoom" name="selectedRoom" class="form-select" required disabled>
+                                            <option value="">Спочатку оберіть корпус</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group mb-3">
+                                        <label for="selectedPeriod" class="form-label">Період</label>
+                                        <select id="selectedPeriod" name="selectedPeriod" class="form-select">
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group mb-3">
+                                        <label for="fromDate" class="form-label">Від дати</label>
+                                        <input type="text" id="fromDate" name="fromDate" class="form-control" placeholder="дд.мм.рррр" required>
+                                    </div>
+
+                                    <div class="form-group mb-3">
+                                        <label for="toDate" class="form-label">До дати</label>
+                                        <input type="text" id="toDate" name="toDate" class="form-control" placeholder="дд.мм.рррр" required>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100" id="searchBtn">
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                    Знайти розклад
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 mt-4">
+                    <div class="card d-none" id="scheduleCard">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-end mb-3">
+                                <div id="exportSection" class="d-none">
+                                    <a href="#" id="exportLink" class="btn btn-outline-success btn-sm" target="_blank">
+                                        <i class="bi bi-download"></i> Експорт iCal
+                                    </a>
+                                </div>
+                            </div>
+                            <div id="scheduleContent">
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-calendar3 fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/schedule.js"></script>
+</body>
+</html> 
