@@ -9,6 +9,7 @@ $(document).ready(function() {
         loadBlocks();
         setupPeriodOptions();
         setupEventHandlers();
+        initializeDatePickers();
     }
 
     function loadBlocks() {
@@ -131,6 +132,7 @@ $(document).ready(function() {
         // Set default selection
         $periodSelect.val('to_end_of_week');
         updateDateFields();
+        toggleDateInputs();
     }
 
     function setupEventHandlers() {
@@ -147,6 +149,7 @@ $(document).ready(function() {
         // Period selection change
         $('#selectedPeriod').on('change', function() {
             updateDateFields();
+            toggleDateInputs();
         });
 
         // Form submission
@@ -185,8 +188,43 @@ $(document).ready(function() {
         const toDate = selectedPeriod.data('to');
         
         if (fromDate && toDate) {
+            // Set dd.MM.yyyy format directly for Flatpickr
             $('#fromDate').val(fromDate);
             $('#toDate').val(toDate);
+            
+            // Update Flatpickr instances
+            if (window.fromDatePicker) {
+                window.fromDatePicker.setDate(fromDate, false, 'd.m.Y');
+            }
+            if (window.toDatePicker) {
+                window.toDatePicker.setDate(toDate, false, 'd.m.Y');
+            }
+        }
+    }
+
+    function toggleDateInputs() {
+        const selectedPeriod = $('#selectedPeriod').val();
+        const isCustomPeriod = selectedPeriod === 'custom';
+        
+        // Enable/disable date inputs based on period selection
+        $('#fromDate').prop('disabled', !isCustomPeriod);
+        $('#toDate').prop('disabled', !isCustomPeriod);
+        
+        // Update Flatpickr instances
+        if (window.fromDatePicker) {
+            if (isCustomPeriod) {
+                window.fromDatePicker.enable();
+            } else {
+                window.fromDatePicker.disable();
+            }
+        }
+        
+        if (window.toDatePicker) {
+            if (isCustomPeriod) {
+                window.toDatePicker.enable();
+            } else {
+                window.toDatePicker.disable();
+            }
         }
     }
 
@@ -242,11 +280,39 @@ $(document).ready(function() {
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-        return `${day}.${month}.${year}`; // dd.MM.yyyy for HTML text inputs
+        return `${day}.${month}.${year}`; // dd.MM.yyyy for API
+    }
+
+    function initializeDatePickers() {
+        // Initialize Flatpickr for date inputs with dd.MM.yyyy format
+        const datePickerConfig = {
+            dateFormat: 'd.m.Y',
+            locale: 'uk',
+            allowInput: true,
+            clickOpens: true,
+            placeholder: 'дд.мм.рррр',
+            disableMobile: false
+        };
+
+        window.fromDatePicker = flatpickr('#fromDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#fromDate').val(dateStr);
+            }
+        });
+
+        window.toDatePicker = flatpickr('#toDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#toDate').val(dateStr);
+            }
+        });
     }
 
     function convertDateForAPI(htmlDate) {
-        // Convert dd.MM.yyyy to dd.MM.yyyy (no conversion needed now)
+        // No conversion needed - Flatpickr already provides dd.MM.yyyy format
         return htmlDate;
     }
 
@@ -276,7 +342,14 @@ $(document).ready(function() {
             let scheduleHtml = `<h5 class="mb-3">Розклад для: ${roomName}</h5>`;
             scheduleHtml += '<div class="row">';
             
-            const sortedDates = Object.keys(groupedSchedule).sort();
+            const sortedDates = Object.keys(groupedSchedule).sort(function(a, b) {
+                // Convert dd.MM.yyyy format to Date objects for proper sorting
+                const datePartsA = a.split('.');
+                const datePartsB = b.split('.');
+                const dateA = new Date(datePartsA[2], datePartsA[1] - 1, datePartsA[0]);
+                const dateB = new Date(datePartsB[2], datePartsB[1] - 1, datePartsB[0]);
+                return dateA - dateB;
+            });
             sortedDates.forEach(function(date, index) {
                 const daySchedule = groupedSchedule[date];
                 const colClass = index % 2 === 0 ? 'col-md-6' : 'col-md-6';
