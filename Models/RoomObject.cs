@@ -8,5 +8,5 @@ public sealed record RoomObject
     public required string Name { get; init; }
     
     [JsonPropertyName("ID")]
-    public required string ID { get; init; }
+    public required string Id { get; init; }
 } 

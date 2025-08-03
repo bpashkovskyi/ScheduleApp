@@ -34,7 +34,7 @@ public sealed class ScheduleService : IScheduleService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting blocks");
-            throw new InvalidOperationException("Помилка завантаження блоків", ex);
+            throw new InvalidOperationException("Помилка завантаження корпусів", ex);
         }
     }
 
@@ -70,7 +70,7 @@ public sealed class ScheduleService : IScheduleService
         var fromDateStr = FormatDate(fromDate);
         var toDateStr = FormatDate(toDate);
         
-        return $"{BaseUrl}?req_type=rozklad&req_mode=room&OBJ_ID={roomId}&OBJ_name=&dep_name=&ros_text=united&begin_date={fromDateStr}&end_date={toDateStr}&req_format=ical&coding_mode=UTF8&bs=ok";
+        return $"{BaseUrl}?req_type=rozklad&req_mode=room&OBJ_ID={roomId}&OBJ_name=&dep_name=&ros_text=united&begin_date={fromDateStr}&end_date={toDateStr}&req_format=iCal&coding_mode=UTF8&bs=ok";
     }
 
     public List<PeriodOption> GetPeriodOptions()

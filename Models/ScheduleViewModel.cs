@@ -8,7 +8,7 @@ public sealed record ScheduleViewModel
     public List<RoomObject> AvailableRooms { get; init; } = new();
     public List<PeriodOption> PeriodOptions { get; init; } = new();
     
-    [Display(Name = "Блок")]
+            [Display(Name = "Корпус")]
     public string? SelectedBlock { get; init; }
     
     [Display(Name = "Аудиторія")]

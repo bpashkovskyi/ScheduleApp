@@ -21,14 +21,14 @@ public sealed class HomeController : Controller
         {
             var blocks = await _scheduleService.GetBlocksAsync();
             var periodOptions = _scheduleService.GetPeriodOptions();
-            
+
             var viewModel = new ScheduleViewModel
             {
                 Blocks = blocks,
                 PeriodOptions = periodOptions,
                 SelectedPeriod = "to_end_of_week"
             };
-            
+
             return View(viewModel);
         }
         catch (Exception ex)
@@ -49,9 +49,9 @@ public sealed class HomeController : Controller
         {
             var blocks = await _scheduleService.GetBlocksAsync();
             var selectedBlockData = blocks.FirstOrDefault(b => b.Name == selectedBlock);
-            
+
             var availableRooms = selectedBlockData?.Objects ?? new List<RoomObject>();
-            
+
             return Json(new { success = true, rooms = availableRooms });
         }
         catch (Exception ex)
@@ -71,20 +71,21 @@ public sealed class HomeController : Controller
                 return Json(new { success = false, error = "Необхідно заповнити всі поля" });
             }
 
-            var scheduleItems = await _scheduleService.GetScheduleAsync(request.RoomId, request.FromDate.Value, request.ToDate.Value);
+            var scheduleItems =
+                await _scheduleService.GetScheduleAsync(request.RoomId, request.FromDate.Value, request.ToDate.Value);
             var exportUrl = _scheduleService.GetExportUrl(request.RoomId, request.FromDate.Value, request.ToDate.Value);
-            
+
             // Get room name
             var blocks = await _scheduleService.GetBlocksAsync();
             var roomName = blocks
                 .SelectMany(b => b.Objects)
-                .FirstOrDefault(r => r.ID == request.RoomId)?.Name ?? "Невідома аудиторія";
-            
+                .FirstOrDefault(r => r.Id == request.RoomId)?.Name ?? "Невідома аудиторія";
+
             var groupedSchedule = GroupScheduleByDate(scheduleItems);
-            
-            return Json(new 
-            { 
-                success = true, 
+
+            return Json(new
+            {
+                success = true,
                 schedule = groupedSchedule,
                 roomName = roomName,
                 exportUrl = exportUrl

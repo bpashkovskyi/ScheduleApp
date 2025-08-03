@@ -14,55 +14,49 @@
     <div class="row">
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Параметри пошуку</h5>
-                </div>
                 <div class="card-body">
                     <form id="scheduleForm">
-                        <div class="mb-3">
-                            <label for="selectedBlock" class="form-label">Блок</label>
-                            <select id="selectedBlock" name="selectedBlock" class="form-select" required>
-                                <option value="">Оберіть блок</option>
-                                @foreach (var block in Model.Blocks)
-                                {
-                                    <option value="@block.Name">@block.Name</option>
-                                }
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="selectedRoom" class="form-label">Аудиторія</label>
-                            <select id="selectedRoom" name="selectedRoom" class="form-select" required disabled>
-                                <option value="">Спочатку оберіть блок</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="selectedPeriod" class="form-label">Період</label>
-                            <select id="selectedPeriod" name="selectedPeriod" class="form-select">
-                                @foreach (var period in Model.PeriodOptions)
-                                {
-                                    <option value="@period.Value" 
-                                            data-from="@period.FromDate.ToString("yyyy-MM-dd")" 
-                                            data-to="@period.ToDate.ToString("yyyy-MM-dd")">
-                                        @period.Label
-                                    </option>
-                                }
-                            </select>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="fromDate" class="form-label">Від дати</label>
-                                    <input type="date" id="fromDate" name="fromDate" class="form-control" required>
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="selectedBlock" class="form-label">Корпус</label>
+                                <select id="selectedBlock" name="selectedBlock" class="form-select" required>
+                                    <option value="">Оберіть корпус</option>
+                                    @foreach (var block in Model.Blocks)
+                                    {
+                                        <option value="@block.Name">@block.Name</option>
+                                    }
+                                </select>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="toDate" class="form-label">До дати</label>
-                                    <input type="date" id="toDate" name="toDate" class="form-control" required>
-                                </div>
+
+                            <div class="form-group">
+                                <label for="selectedRoom" class="form-label">Аудиторія</label>
+                                <select id="selectedRoom" name="selectedRoom" class="form-select" required disabled>
+                                    <option value="">Спочатку оберіть корпус</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="selectedPeriod" class="form-label">Період</label>
+                                <select id="selectedPeriod" name="selectedPeriod" class="form-select">
+                                    @foreach (var period in Model.PeriodOptions)
+                                    {
+                                        <option value="@period.Value" 
+                                                data-from="@period.FromDate.ToString("yyyy-MM-dd")" 
+                                                data-to="@period.ToDate.ToString("yyyy-MM-dd")">
+                                            @period.Label
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="fromDate" class="form-label">Від дати</label>
+                                <input type="date" id="fromDate" name="fromDate" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="toDate" class="form-label">До дати</label>
+                                <input type="date" id="toDate" name="toDate" class="form-control" required>
                             </div>
                         </div>
 
@@ -76,20 +70,18 @@
         </div>
 
         <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Розклад занять</h5>
-                    <div id="exportSection" class="d-none">
-                        <a href="#" id="exportLink" class="btn btn-outline-success btn-sm" target="_blank">
-                            <i class="bi bi-download"></i> Експорт iCal
-                        </a>
-                    </div>
-                </div>
+            <div class="card d-none">
                 <div class="card-body">
+                    <div class="d-flex justify-content-end mb-3">
+                        <div id="exportSection" class="d-none">
+                            <a href="#" id="exportLink" class="btn btn-outline-success btn-sm" target="_blank">
+                                <i class="bi bi-download"></i> Експорт iCal
+                            </a>
+                        </div>
+                    </div>
                     <div id="scheduleContent">
                         <div class="text-center text-muted py-5">
                             <i class="bi bi-calendar3 fs-1"></i>
-                            <p class="mt-3">Оберіть параметри для перегляду розкладу</p>
                         </div>
                     </div>
                 </div>
