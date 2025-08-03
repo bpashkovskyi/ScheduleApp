@@ -1,32 +1,37 @@
-using ScheduleApp.Services;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews()
-    .AddRazorRuntimeCompilation();
-
+builder.Services.AddControllers();
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<IScheduleService, ScheduleService>();
+
+// Add CORS for static files
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/error");
     app.UseHsts();
 }
 
-////app.UseHttpsRedirection();
+app.UseCors();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapControllers();
+
+// Serve index.html for the root path
+app.MapFallbackToFile("index.html");
 
 app.Run(); 
