@@ -49,10 +49,16 @@ $(document).ready(function() {
         const today = new Date();
         const currentWeekStart = getWeekStart(today);
         const currentWeekEnd = getWeekEnd(today);
-        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const previousMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+        
+        // Fix current month calculation - ensure we get the correct month
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0-11
+        const currentMonthStart = new Date(currentYear, currentMonth, 1);
+        const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0);
+        
+        // Fix previous month calculation
+        const previousMonthStart = new Date(currentYear, currentMonth - 1, 1);
+        const previousMonthEnd = new Date(currentYear, currentMonth, 0);
         
         const currentTerm = getCurrentTerm(today);
         
@@ -382,7 +388,7 @@ $(document).ready(function() {
     function getWeekStart(date) {
         const dayOfWeek = date.getDay();
         const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        return new Date(date.setDate(diff));
+        return new Date(date.getFullYear(), date.getMonth(), diff);
     }
 
     function getWeekEnd(date) {
