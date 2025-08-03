@@ -9,12 +9,13 @@
     <link href="css/site.css" rel="stylesheet" />
 </head>
 <body>
-    <div class="container-fluid mt-4">
+    <div class="container mt-4" style="max-width: 1400px;">
         <div class="schedule-container">
             <div id="errorAlert" class="alert alert-danger d-none" role="alert">
             </div>
 
             <div class="row">
+                <div class="col-12">
                     <div class="card">
                         <div class="card-body">
                             <form id="scheduleForm">
@@ -41,12 +42,12 @@
 
                                     <div class="form-group mb-3">
                                         <label for="fromDate" class="form-label">Від дати</label>
-                                        <input type="date" id="fromDate" name="fromDate" class="form-control" required>
+                                        <input type="text" id="fromDate" name="fromDate" class="form-control" placeholder="дд.мм.рррр" required>
                                     </div>
 
                                     <div class="form-group mb-3">
                                         <label for="toDate" class="form-label">До дати</label>
-                                        <input type="date" id="toDate" name="toDate" class="form-control" required>
+                                        <input type="text" id="toDate" name="toDate" class="form-control" placeholder="дд.мм.рррр" required>
                                     </div>
                                 </div>
 
@@ -59,7 +60,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-8">
+                <div class="col-12 mt-4">
                     <div class="card d-none" id="scheduleCard">
                         <div class="card-body">
                             <div class="d-flex justify-content-end mb-3">
@@ -77,6 +78,7 @@
                         </div>
                     </div>
                 </div>
+            </div>
         </div>
     </div>
 

@@ -19,14 +19,28 @@ $(document).ready(function() {
                 q: 'req_type=obj_list&req_mode=room&show_ID=yes&req_format=json&coding_mode=UTF8&bs=ok'
             },
             success: function(data) {
+                console.log('Blocks API response:', data);
+                
+                // Check for API errors in response body
+                if (data.psrozklad_export && data.psrozklad_export.error) {
+                    const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
+                    const errorCode = data.psrozklad_export.error.errorcode || '';
+                    showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
+                    return;
+                }
+                
                 // Parse the raw JSON response from external API
                 if (data.psrozklad_export && data.psrozklad_export.blocks) {
                     blocks = data.psrozklad_export.blocks.filter(b => b.objects && b.objects.length > 0);
                     populateBlocks();
+                } else {
+                    showError('Неправильна структура відповіді API: ' + JSON.stringify(data));
                 }
             },
-            error: function(xhr) {
-                showError('Помилка завантаження корпусів: ' + getErrorMessage(xhr));
+            error: function(xhr, status, error) {
+                console.error('Blocks API error:', {xhr, status, error});
+                const errorDetails = getDetailedErrorMessage(xhr);
+                showError('Помилка завантаження корпусів: ' + errorDetails);
             }
         });
     }
@@ -145,7 +159,7 @@ $(document).ready(function() {
         
         if (selectedBlock && selectedBlock.objects) {
             selectedBlock.objects.forEach(function(room) {
-                $roomSelect.append(`<option value="${room.id}">${room.name}</option>`);
+                $roomSelect.append(`<option value="${room.ID}">${room.name}</option>`);
             });
         }
         
@@ -182,7 +196,11 @@ $(document).ready(function() {
 
         showLoading(true);
 
-        const queryString = `req_type=rozklad&req_mode=room&OBJ_ID=${roomId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDate}&end_date=${toDate}&req_format=json&coding_mode=UTF8&bs=ok`;
+        // Convert HTML date format (yyyy-MM-dd) to API format (dd.MM.yyyy)
+        const fromDateAPI = convertDateForAPI(fromDate);
+        const toDateAPI = convertDateForAPI(toDate);
+
+        const queryString = `req_type=rozklad&req_mode=room&OBJ_ID=${roomId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDateAPI}&end_date=${toDateAPI}&req_format=json&coding_mode=UTF8&bs=ok`;
 
         $.ajax({
             url: '/api/schedule/proxy',
@@ -191,14 +209,39 @@ $(document).ready(function() {
                 q: queryString
             },
             success: function(data) {
+                console.log('Schedule API response:', data);
+                
+                // Check for API errors in response body
+                if (data.psrozklad_export && data.psrozklad_export.error) {
+                    const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
+                    const errorCode = data.psrozklad_export.error.errorcode || '';
+                    showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
+                    showLoading(false);
+                    return;
+                }
+                
                 displaySchedule(data, roomId);
                 showLoading(false);
             },
-            error: function(xhr) {
-                showError('Помилка завантаження розкладу: ' + getErrorMessage(xhr));
+            error: function(xhr, status, error) {
+                console.error('Schedule API error:', {xhr, status, error});
+                const errorDetails = getDetailedErrorMessage(xhr);
+                showError('Помилка завантаження розкладу: ' + errorDetails);
                 showLoading(false);
             }
         });
+    }
+
+    function formatDateForAPI(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`; // dd.MM.yyyy for HTML text inputs
+    }
+
+    function convertDateForAPI(htmlDate) {
+        // Convert dd.MM.yyyy to dd.MM.yyyy (no conversion needed now)
+        return htmlDate;
     }
 
     function displaySchedule(data, roomId) {
@@ -210,7 +253,9 @@ $(document).ready(function() {
         // Get export URL
         const fromDate = $('#fromDate').val();
         const toDate = $('#toDate').val();
-        const exportQueryString = `req_type=rozklad&req_mode=room&OBJ_ID=${roomId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDate}&end_date=${toDate}&req_format=iCal&coding_mode=UTF8&bs=ok`;
+        const fromDateAPI = convertDateForAPI(fromDate);
+        const toDateAPI = convertDateForAPI(toDate);
+        const exportQueryString = `req_type=rozklad&req_mode=room&OBJ_ID=${roomId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDateAPI}&end_date=${toDateAPI}&req_format=iCal&coding_mode=UTF8&bs=ok`;
         const exportUrl = `/api/schedule/proxy?q=${encodeURIComponent(exportQueryString)}`;
         
         // Set export link directly to the proxy URL
@@ -218,17 +263,25 @@ $(document).ready(function() {
         $exportSection.removeClass('d-none');
 
         // Display schedule
-        if (data.psrozklad_export && data.psrozklad_export.rozItems && data.psrozklad_export.rozItems.length > 0) {
-            const groupedSchedule = groupScheduleByDate(data.psrozklad_export.rozItems);
+        if (data.psrozklad_export && data.psrozklad_export.roz_items && data.psrozklad_export.roz_items.length > 0) {
+            const groupedSchedule = groupScheduleByDate(data.psrozklad_export.roz_items);
             const roomName = getRoomName(roomId);
             
             let scheduleHtml = `<h5 class="mb-3">Розклад для: ${roomName}</h5>`;
+            scheduleHtml += '<div class="row">';
             
-            Object.keys(groupedSchedule).sort().forEach(function(date) {
+            const sortedDates = Object.keys(groupedSchedule).sort();
+            sortedDates.forEach(function(date, index) {
                 const daySchedule = groupedSchedule[date];
-                scheduleHtml += createDayScheduleHtml(date, daySchedule);
+                const colClass = index % 2 === 0 ? 'col-md-6' : 'col-md-6';
+                scheduleHtml += `
+                    <div class="${colClass} mb-3">
+                        ${createDayScheduleHtml(date, daySchedule)}
+                    </div>
+                `;
             });
             
+            scheduleHtml += '</div>';
             $scheduleContent.html(scheduleHtml);
         } else {
             $scheduleContent.html(`
@@ -256,7 +309,7 @@ $(document).ready(function() {
     function getRoomName(roomId) {
         for (const block of blocks) {
             if (block.objects) {
-                const room = block.objects.find(r => r.id === roomId);
+                const room = block.objects.find(r => r.ID === roomId);
                 if (room) {
                     return room.name;
                 }
@@ -266,7 +319,9 @@ $(document).ready(function() {
     }
 
     function createDayScheduleHtml(date, daySchedule) {
-        const dateObj = new Date(date);
+        // Convert date from dd.MM.yyyy format to Date object
+        const dateParts = date.split('.');
+        const dateObj = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
         const dayName = getDayName(dateObj.getDay());
         const formattedDate = dateObj.toLocaleDateString('uk-UA', {
             day: '2-digit',
@@ -275,7 +330,7 @@ $(document).ready(function() {
         });
 
         let dayHtml = `
-            <div class="card mb-3">
+            <div class="card h-100">
                 <div class="card-header">
                     <strong>${dayName}, ${formattedDate}</strong>
                 </div>
@@ -283,22 +338,34 @@ $(document).ready(function() {
         `;
 
         if (daySchedule && daySchedule.length > 0) {
+            dayHtml += `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th style="width: 10%">№</th>
+                                <th style="width: 15%">Час</th>
+                                <th style="width: 75%">Заняття</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
             daySchedule.forEach(function(item) {
                 dayHtml += `
-                    <div class="schedule-item mb-2 p-2 border rounded">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <strong>${item.time || ''}</strong>
-                            </div>
-                            <div class="col-md-10">
-                                <div><strong>${item.subject || ''}</strong></div>
-                                <div class="text-muted small">${item.teacher || ''}</div>
-                                <div class="text-muted small">${item.group || ''}</div>
-                            </div>
-                        </div>
-                    </div>
+                    <tr>
+                        <td class="text-center fw-bold">${item.lesson_number || ''}</td>
+                        <td class="text-primary fw-bold">${item.lesson_time || ''}</td>
+                        <td>${item.lesson_description || ''}</td>
+                    </tr>
                 `;
             });
+            
+            dayHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
         } else {
             dayHtml += '<div class="text-muted">Розклад відсутній</div>';
         }
@@ -310,10 +377,6 @@ $(document).ready(function() {
     function getDayName(dayIndex) {
         const days = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
         return days[dayIndex];
-    }
-
-    function formatDateForAPI(date) {
-        return date.toISOString().split('T')[0];
     }
 
     function getWeekStart(date) {
@@ -365,10 +428,24 @@ $(document).ready(function() {
         const $errorAlert = $('#errorAlert');
         $errorAlert.text(message).removeClass('d-none');
         
-        // Auto-hide after 5 seconds
+        // Make error more visible
+        $errorAlert.css({
+            'background-color': '#f8d7da',
+            'border-color': '#f5c6cb',
+            'color': '#721c24',
+            'padding': '15px',
+            'border-radius': '8px',
+            'margin-bottom': '15px',
+            'font-weight': '600'
+        });
+        
+        // Auto-hide after 10 seconds (longer for debugging)
         setTimeout(function() {
             $errorAlert.addClass('d-none');
-        }, 5000);
+        }, 10000);
+        
+        // Also log to console for debugging
+        console.error('Application Error:', message);
     }
 
     function getErrorMessage(xhr) {
@@ -376,5 +453,19 @@ $(document).ready(function() {
             return xhr.responseJSON.error;
         }
         return xhr.statusText || 'Невідома помилка';
+    }
+
+    function getDetailedErrorMessage(xhr) {
+        let errorMessage = 'Невідома помилка';
+        if (xhr.responseJSON && xhr.responseJSON.error) {
+            errorMessage = xhr.responseJSON.error;
+        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+            errorMessage = xhr.responseJSON.message;
+        } else if (xhr.responseText) {
+            errorMessage = xhr.responseText;
+        } else if (xhr.statusText) {
+            errorMessage = xhr.statusText;
+        }
+        return `${xhr.status} ${xhr.statusText}: ${errorMessage}`;
     }
 }); 
