@@ -1,5 +1,7 @@
 $(document).ready(function() {
     let blocks = [];
+    let departments = [];
+    let groupDepartments = [];
     let periodOptions = [];
 
     // Initialize the application
@@ -7,6 +9,8 @@ $(document).ready(function() {
 
     function initializeApp() {
         loadBlocks();
+        loadDepartments();
+        loadGroupDepartments();
         setupPeriodOptions();
         setupEventHandlers();
         initializeDatePickers();
@@ -42,6 +46,74 @@ $(document).ready(function() {
                 console.error('Blocks API error:', {xhr, status, error});
                 const errorDetails = getDetailedErrorMessage(xhr);
                 showError('Помилка завантаження корпусів: ' + errorDetails);
+            }
+        });
+    }
+
+    function loadDepartments() {
+        $.ajax({
+            url: '/api/schedule/proxy',
+            method: 'GET',
+            data: {
+                q: 'req_type=obj_list&req_mode=teacher&show_ID=yes&req_format=json&coding_mode=UTF8&bs=ok'
+            },
+            success: function(data) {
+                console.log('Departments API response:', data);
+                
+                // Check for API errors in response body
+                if (data.psrozklad_export && data.psrozklad_export.error) {
+                    const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
+                    const errorCode = data.psrozklad_export.error.errorcode || '';
+                    showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
+                    return;
+                }
+                
+                // Parse the raw JSON response from external API
+                if (data.psrozklad_export && data.psrozklad_export.departments) {
+                    departments = data.psrozklad_export.departments.filter(d => d.objects && d.objects.length > 0);
+                    populateDepartments();
+                } else {
+                    showError('Неправильна структура відповіді API: ' + JSON.stringify(data));
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Departments API error:', {xhr, status, error});
+                const errorDetails = getDetailedErrorMessage(xhr);
+                showError('Помилка завантаження підрозділів: ' + errorDetails);
+            }
+        });
+    }
+
+    function loadGroupDepartments() {
+        $.ajax({
+            url: '/api/schedule/proxy',
+            method: 'GET',
+            data: {
+                q: 'req_type=obj_list&req_mode=group&show_ID=yes&req_format=json&coding_mode=UTF8&bs=ok'
+            },
+            success: function(data) {
+                console.log('Group Departments API response:', data);
+                
+                // Check for API errors in response body
+                if (data.psrozklad_export && data.psrozklad_export.error) {
+                    const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
+                    const errorCode = data.psrozklad_export.error.errorcode || '';
+                    showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
+                    return;
+                }
+                
+                // Parse the raw JSON response from external API
+                if (data.psrozklad_export && data.psrozklad_export.departments) {
+                    groupDepartments = data.psrozklad_export.departments.filter(d => d.objects && d.objects.length > 0);
+                    populateGroupDepartments();
+                } else {
+                    showError('Неправильна структура відповіді API: ' + JSON.stringify(data));
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Group Departments API error:', {xhr, status, error});
+                const errorDetails = getDetailedErrorMessage(xhr);
+                showError('Помилка завантаження груп: ' + errorDetails);
             }
         });
     }
@@ -115,7 +187,28 @@ $(document).ready(function() {
         });
     }
 
+    function populateDepartments() {
+        const $departmentSelect = $('#selectedDepartment');
+        $departmentSelect.empty();
+        $departmentSelect.append('<option value="">Оберіть підрозділ</option>');
+        
+        departments.forEach(function(department) {
+            $departmentSelect.append(`<option value="${department.name}">${department.name}</option>`);
+        });
+    }
+
+    function populateGroupDepartments() {
+        const $groupDepartmentSelect = $('#groupsSelectedDepartment');
+        $groupDepartmentSelect.empty();
+        $groupDepartmentSelect.append('<option value="">Оберіть підрозділ</option>');
+        
+        groupDepartments.forEach(function(department) {
+            $groupDepartmentSelect.append(`<option value="${department.name}">${department.name}</option>`);
+        });
+    }
+
     function populatePeriodOptions() {
+        // Populate for rooms
         const $periodSelect = $('#selectedPeriod');
         $periodSelect.empty();
         
@@ -129,8 +222,38 @@ $(document).ready(function() {
             `);
         });
         
-        // Set default selection
+        // Populate for teachers
+        const $teachersPeriodSelect = $('#teachersSelectedPeriod');
+        $teachersPeriodSelect.empty();
+        
+        periodOptions.forEach(function(period) {
+            $teachersPeriodSelect.append(`
+                <option value="${period.value}" 
+                        data-from="${period.fromDate}" 
+                        data-to="${period.toDate}">
+                    ${period.label}
+                </option>
+            `);
+        });
+
+        // Populate for groups
+        const $groupsPeriodSelect = $('#groupsSelectedPeriod');
+        $groupsPeriodSelect.empty();
+        
+        periodOptions.forEach(function(period) {
+            $groupsPeriodSelect.append(`
+                <option value="${period.value}" 
+                        data-from="${period.fromDate}" 
+                        data-to="${period.toDate}">
+                    ${period.label}
+                </option>
+            `);
+        });
+        
+        // Set default selection for all
         $periodSelect.val('to_end_of_week');
+        $teachersPeriodSelect.val('to_end_of_week');
+        $groupsPeriodSelect.val('to_end_of_week');
         updateDateFields();
         toggleDateInputs();
     }
@@ -146,16 +269,58 @@ $(document).ready(function() {
             }
         });
 
-        // Period selection change
+        // Department selection change
+        $('#selectedDepartment').on('change', function() {
+            const selectedDepartmentName = $(this).val();
+            if (selectedDepartmentName) {
+                populateTeachers(selectedDepartmentName);
+            } else {
+                resetTeachers();
+            }
+        });
+
+        // Group Department selection change
+        $('#groupsSelectedDepartment').on('change', function() {
+            const selectedDepartmentName = $(this).val();
+            if (selectedDepartmentName) {
+                populateGroups(selectedDepartmentName);
+            } else {
+                resetGroups();
+            }
+        });
+
+        // Period selection change for rooms
         $('#selectedPeriod').on('change', function() {
             updateDateFields();
             toggleDateInputs();
         });
 
-        // Form submission
-        $('#scheduleForm').on('submit', function(e) {
+        // Period selection change for teachers
+        $('#teachersSelectedPeriod').on('change', function() {
+            updateTeachersDateFields();
+            toggleTeachersDateInputs();
+        });
+
+        // Period selection change for groups
+        $('#groupsSelectedPeriod').on('change', function() {
+            updateGroupsDateFields();
+            toggleGroupsDateInputs();
+        });
+
+        // Form submissions
+        $('#roomsScheduleForm').on('submit', function(e) {
             e.preventDefault();
-            searchSchedule();
+            searchRoomsSchedule();
+        });
+
+        $('#teachersScheduleForm').on('submit', function(e) {
+            e.preventDefault();
+            searchTeachersSchedule();
+        });
+
+        $('#groupsScheduleForm').on('submit', function(e) {
+            e.preventDefault();
+            searchGroupsSchedule();
         });
     }
 
@@ -175,11 +340,44 @@ $(document).ready(function() {
         $roomSelect.prop('disabled', false);
     }
 
-    function resetRooms() {
-        const $roomSelect = $('#selectedRoom');
-        $roomSelect.empty();
-        $roomSelect.append('<option value="">Спочатку оберіть корпус</option>');
-        $roomSelect.prop('disabled', true);
+    function populateTeachers(departmentName) {
+        const selectedDepartment = departments.find(d => d.name === departmentName);
+        const $teacherSelect = $('#selectedTeacher');
+        
+        $teacherSelect.empty();
+        $teacherSelect.append('<option value="">Оберіть викладача</option>');
+        
+        if (selectedDepartment && selectedDepartment.objects) {
+            selectedDepartment.objects.forEach(function(teacher) {
+                const teacherName = `${teacher.P} ${teacher.I} ${teacher.B}`;
+                $teacherSelect.append(`<option value="${teacher.ID}">${teacherName}</option>`);
+            });
+        }
+        
+        $teacherSelect.prop('disabled', false);
+    }
+
+    function populateGroups(departmentName) {
+        const selectedDepartment = groupDepartments.find(d => d.name === departmentName);
+        const $groupSelect = $('#selectedGroup');
+        
+        $groupSelect.empty();
+        $groupSelect.append('<option value="">Оберіть групу</option>');
+        
+        if (selectedDepartment && selectedDepartment.objects) {
+            selectedDepartment.objects.forEach(function(group) {
+                $groupSelect.append(`<option value="${group.ID}">${group.name}</option>`);
+            });
+        }
+        
+        $groupSelect.prop('disabled', false);
+    }
+
+    function resetGroups() {
+        const $groupSelect = $('#selectedGroup');
+        $groupSelect.empty();
+        $groupSelect.append('<option value="">Спочатку оберіть підрозділ</option>');
+        $groupSelect.prop('disabled', true);
     }
 
     function updateDateFields() {
@@ -198,6 +396,46 @@ $(document).ready(function() {
             }
             if (window.toDatePicker) {
                 window.toDatePicker.setDate(toDate, false, 'd.m.Y');
+            }
+        }
+    }
+
+    function updateTeachersDateFields() {
+        const selectedPeriod = $('#teachersSelectedPeriod option:selected');
+        const fromDate = selectedPeriod.data('from');
+        const toDate = selectedPeriod.data('to');
+        
+        if (fromDate && toDate) {
+            // Set dd.MM.yyyy format directly for Flatpickr
+            $('#teachersFromDate').val(fromDate);
+            $('#teachersToDate').val(toDate);
+            
+            // Update Flatpickr instances
+            if (window.teachersFromDatePicker) {
+                window.teachersFromDatePicker.setDate(fromDate, false, 'd.m.Y');
+            }
+            if (window.teachersToDatePicker) {
+                window.teachersToDatePicker.setDate(toDate, false, 'd.m.Y');
+            }
+        }
+    }
+
+    function updateGroupsDateFields() {
+        const selectedPeriod = $('#groupsSelectedPeriod option:selected');
+        const fromDate = selectedPeriod.data('from');
+        const toDate = selectedPeriod.data('to');
+        
+        if (fromDate && toDate) {
+            // Set dd.MM.yyyy format directly for Flatpickr
+            $('#groupsFromDate').val(fromDate);
+            $('#groupsToDate').val(toDate);
+            
+            // Update Flatpickr instances
+            if (window.groupsFromDatePicker) {
+                window.groupsFromDatePicker.setDate(fromDate, false, 'd.m.Y');
+            }
+            if (window.groupsToDatePicker) {
+                window.groupsToDatePicker.setDate(toDate, false, 'd.m.Y');
             }
         }
     }
@@ -228,7 +466,59 @@ $(document).ready(function() {
         }
     }
 
-    function searchSchedule() {
+    function toggleTeachersDateInputs() {
+        const selectedPeriod = $('#teachersSelectedPeriod').val();
+        const isCustomPeriod = selectedPeriod === 'custom';
+        
+        // Enable/disable date inputs based on period selection
+        $('#teachersFromDate').prop('disabled', !isCustomPeriod);
+        $('#teachersToDate').prop('disabled', !isCustomPeriod);
+        
+        // Update Flatpickr instances
+        if (window.teachersFromDatePicker) {
+            if (isCustomPeriod) {
+                window.teachersFromDatePicker.enable();
+            } else {
+                window.teachersFromDatePicker.disable();
+            }
+        }
+        
+        if (window.teachersToDatePicker) {
+            if (isCustomPeriod) {
+                window.teachersToDatePicker.enable();
+            } else {
+                window.teachersToDatePicker.disable();
+            }
+        }
+    }
+
+    function toggleGroupsDateInputs() {
+        const selectedPeriod = $('#groupsSelectedPeriod').val();
+        const isCustomPeriod = selectedPeriod === 'custom';
+        
+        // Enable/disable date inputs based on period selection
+        $('#groupsFromDate').prop('disabled', !isCustomPeriod);
+        $('#groupsToDate').prop('disabled', !isCustomPeriod);
+        
+        // Update Flatpickr instances
+        if (window.groupsFromDatePicker) {
+            if (isCustomPeriod) {
+                window.groupsFromDatePicker.enable();
+            } else {
+                window.groupsFromDatePicker.disable();
+            }
+        }
+        
+        if (window.groupsToDatePicker) {
+            if (isCustomPeriod) {
+                window.groupsToDatePicker.enable();
+            } else {
+                window.groupsToDatePicker.disable();
+            }
+        }
+    }
+
+    function searchRoomsSchedule() {
         const roomId = $('#selectedRoom').val();
         const fromDate = $('#fromDate').val();
         const toDate = $('#toDate').val();
@@ -238,7 +528,7 @@ $(document).ready(function() {
             return;
         }
 
-        showLoading(true);
+        showLoading(true, 'rooms');
 
         // Convert HTML date format (yyyy-MM-dd) to API format (dd.MM.yyyy)
         const fromDateAPI = convertDateForAPI(fromDate);
@@ -253,25 +543,121 @@ $(document).ready(function() {
                 q: queryString
             },
             success: function(data) {
-                console.log('Schedule API response:', data);
+                console.log('Rooms Schedule API response:', data);
                 
                 // Check for API errors in response body
                 if (data.psrozklad_export && data.psrozklad_export.error) {
                     const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
                     const errorCode = data.psrozklad_export.error.errorcode || '';
                     showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
-                    showLoading(false);
+                    showLoading(false, 'rooms');
                     return;
                 }
                 
-                displaySchedule(data, roomId);
-                showLoading(false);
+                displayRoomsSchedule(data, roomId);
+                showLoading(false, 'rooms');
             },
             error: function(xhr, status, error) {
-                console.error('Schedule API error:', {xhr, status, error});
+                console.error('Rooms Schedule API error:', {xhr, status, error});
                 const errorDetails = getDetailedErrorMessage(xhr);
                 showError('Помилка завантаження розкладу: ' + errorDetails);
-                showLoading(false);
+                showLoading(false, 'rooms');
+            }
+        });
+    }
+
+    function searchTeachersSchedule() {
+        const teacherId = $('#selectedTeacher').val();
+        const fromDate = $('#teachersFromDate').val();
+        const toDate = $('#teachersToDate').val();
+
+        if (!teacherId || !fromDate || !toDate) {
+            showError('Необхідно заповнити всі поля');
+            return;
+        }
+
+        showLoading(true, 'teachers');
+
+        // Convert HTML date format (yyyy-MM-dd) to API format (dd.MM.yyyy)
+        const fromDateAPI = convertDateForAPI(fromDate);
+        const toDateAPI = convertDateForAPI(toDate);
+
+        const queryString = `req_type=rozklad&req_mode=teacher&OBJ_ID=${teacherId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDateAPI}&end_date=${toDateAPI}&req_format=json&coding_mode=UTF8&bs=ok`;
+
+        $.ajax({
+            url: '/api/schedule/proxy',
+            method: 'GET',
+            data: {
+                q: queryString
+            },
+            success: function(data) {
+                console.log('Teachers Schedule API response:', data);
+                
+                // Check for API errors in response body
+                if (data.psrozklad_export && data.psrozklad_export.error) {
+                    const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
+                    const errorCode = data.psrozklad_export.error.errorcode || '';
+                    showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
+                    showLoading(false, 'teachers');
+                    return;
+                }
+                
+                displayTeachersSchedule(data, teacherId);
+                showLoading(false, 'teachers');
+            },
+            error: function(xhr, status, error) {
+                console.error('Teachers Schedule API error:', {xhr, status, error});
+                const errorDetails = getDetailedErrorMessage(xhr);
+                showError('Помилка завантаження розкладу: ' + errorDetails);
+                showLoading(false, 'teachers');
+            }
+        });
+    }
+
+    function searchGroupsSchedule() {
+        const groupId = $('#selectedGroup').val();
+        const fromDate = $('#groupsFromDate').val();
+        const toDate = $('#groupsToDate').val();
+
+        if (!groupId || !fromDate || !toDate) {
+            showError('Необхідно заповнити всі поля');
+            return;
+        }
+
+        showLoading(true, 'groups');
+
+        // Convert HTML date format (yyyy-MM-dd) to API format (dd.MM.yyyy)
+        const fromDateAPI = convertDateForAPI(fromDate);
+        const toDateAPI = convertDateForAPI(toDate);
+
+        const queryString = `req_type=rozklad&req_mode=group&OBJ_ID=${groupId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDateAPI}&end_date=${toDateAPI}&req_format=json&coding_mode=UTF8&bs=ok`;
+
+        $.ajax({
+            url: '/api/schedule/proxy',
+            method: 'GET',
+            data: {
+                q: queryString
+            },
+            success: function(data) {
+                console.log('Groups Schedule API response:', data);
+                
+                // Check for API errors in response body
+                if (data.psrozklad_export && data.psrozklad_export.error) {
+                    const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
+                    const errorCode = data.psrozklad_export.error.errorcode || '';
+                    showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
+                    showLoading(false, 'groups');
+                    return;
+                }
+                
+                displayGroupsSchedule(data, groupId);
+                showLoading(false, 'groups');
+            },
+            error: function(xhr, status, error) {
+                console.error('Groups Schedule API error:', {xhr, status, error});
+                const errorDetails = getDetailedErrorMessage(xhr);
+                showError('Помилка завантаження розкладу: ' + errorDetails);
+                showLoading(false, 'groups');
             }
         });
     }
@@ -294,6 +680,7 @@ $(document).ready(function() {
             disableMobile: false
         };
 
+        // Rooms date pickers
         window.fromDatePicker = flatpickr('#fromDate', {
             ...datePickerConfig,
             onChange: function(selectedDates, dateStr) {
@@ -309,6 +696,40 @@ $(document).ready(function() {
                 $('#toDate').val(dateStr);
             }
         });
+
+        // Teachers date pickers
+        window.teachersFromDatePicker = flatpickr('#teachersFromDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#teachersFromDate').val(dateStr);
+            }
+        });
+
+        window.teachersToDatePicker = flatpickr('#teachersToDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#teachersToDate').val(dateStr);
+            }
+        });
+
+        // Groups date pickers
+        window.groupsFromDatePicker = flatpickr('#groupsFromDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#groupsFromDate').val(dateStr);
+            }
+        });
+
+        window.groupsToDatePicker = flatpickr('#groupsToDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#groupsToDate').val(dateStr);
+            }
+        });
     }
 
     function convertDateForAPI(htmlDate) {
@@ -316,11 +737,11 @@ $(document).ready(function() {
         return htmlDate;
     }
 
-    function displaySchedule(data, roomId) {
-        const $scheduleCard = $('#scheduleCard');
-        const $scheduleContent = $('#scheduleContent');
-        const $exportSection = $('#exportSection');
-        const $exportLink = $('#exportLink');
+    function displayRoomsSchedule(data, roomId) {
+        const $scheduleCard = $('#roomsScheduleCard');
+        const $scheduleContent = $('#roomsScheduleContent');
+        const $exportSection = $('#roomsExportSection');
+        const $exportLink = $('#roomsExportLink');
 
         // Get export URL
         const fromDate = $('#fromDate').val();
@@ -340,6 +761,122 @@ $(document).ready(function() {
             const roomName = getRoomName(roomId);
             
             let scheduleHtml = `<h5 class="mb-3">Розклад для: ${roomName}</h5>`;
+            scheduleHtml += '<div class="row">';
+            
+            const sortedDates = Object.keys(groupedSchedule).sort(function(a, b) {
+                // Convert dd.MM.yyyy format to Date objects for proper sorting
+                const datePartsA = a.split('.');
+                const datePartsB = b.split('.');
+                const dateA = new Date(datePartsA[2], datePartsA[1] - 1, datePartsA[0]);
+                const dateB = new Date(datePartsB[2], datePartsB[1] - 1, datePartsB[0]);
+                return dateA - dateB;
+            });
+            sortedDates.forEach(function(date, index) {
+                const daySchedule = groupedSchedule[date];
+                const colClass = index % 2 === 0 ? 'col-md-6' : 'col-md-6';
+                scheduleHtml += `
+                    <div class="${colClass} mb-3">
+                        ${createDayScheduleHtml(date, daySchedule)}
+                    </div>
+                `;
+            });
+            
+            scheduleHtml += '</div>';
+            $scheduleContent.html(scheduleHtml);
+        } else {
+            $scheduleContent.html(`
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-calendar-x fs-1"></i>
+                    <p class="mt-3">На обраний період розклад не знайдено</p>
+                </div>
+            `);
+        }
+
+        $scheduleCard.removeClass('d-none');
+    }
+
+    function displayTeachersSchedule(data, teacherId) {
+        const $scheduleCard = $('#teachersScheduleCard');
+        const $scheduleContent = $('#teachersScheduleContent');
+        const $exportSection = $('#teachersExportSection');
+        const $exportLink = $('#teachersExportLink');
+
+        // Get export URL
+        const fromDate = $('#teachersFromDate').val();
+        const toDate = $('#teachersToDate').val();
+        const fromDateAPI = convertDateForAPI(fromDate);
+        const toDateAPI = convertDateForAPI(toDate);
+        const exportQueryString = `req_type=rozklad&req_mode=teacher&OBJ_ID=${teacherId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDateAPI}&end_date=${toDateAPI}&req_format=iCal&coding_mode=UTF8&bs=ok`;
+        const exportUrl = `/api/schedule/proxy?q=${encodeURIComponent(exportQueryString)}`;
+        
+        // Set export link directly to the proxy URL
+        $exportLink.attr('href', exportUrl);
+        $exportSection.removeClass('d-none');
+
+        // Display schedule
+        if (data.psrozklad_export && data.psrozklad_export.roz_items && data.psrozklad_export.roz_items.length > 0) {
+            const groupedSchedule = groupScheduleByDate(data.psrozklad_export.roz_items);
+            const teacherName = getTeacherName(teacherId);
+            
+            let scheduleHtml = `<h5 class="mb-3">Розклад для: ${teacherName}</h5>`;
+            scheduleHtml += '<div class="row">';
+            
+            const sortedDates = Object.keys(groupedSchedule).sort(function(a, b) {
+                // Convert dd.MM.yyyy format to Date objects for proper sorting
+                const datePartsA = a.split('.');
+                const datePartsB = b.split('.');
+                const dateA = new Date(datePartsA[2], datePartsA[1] - 1, datePartsA[0]);
+                const dateB = new Date(datePartsB[2], datePartsB[1] - 1, datePartsB[0]);
+                return dateA - dateB;
+            });
+            sortedDates.forEach(function(date, index) {
+                const daySchedule = groupedSchedule[date];
+                const colClass = index % 2 === 0 ? 'col-md-6' : 'col-md-6';
+                scheduleHtml += `
+                    <div class="${colClass} mb-3">
+                        ${createDayScheduleHtml(date, daySchedule)}
+                    </div>
+                `;
+            });
+            
+            scheduleHtml += '</div>';
+            $scheduleContent.html(scheduleHtml);
+        } else {
+            $scheduleContent.html(`
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-calendar-x fs-1"></i>
+                    <p class="mt-3">На обраний період розклад не знайдено</p>
+                </div>
+            `);
+        }
+
+        $scheduleCard.removeClass('d-none');
+    }
+
+    function displayGroupsSchedule(data, groupId) {
+        const $scheduleCard = $('#groupsScheduleCard');
+        const $scheduleContent = $('#groupsScheduleContent');
+        const $exportSection = $('#groupsExportSection');
+        const $exportLink = $('#groupsExportLink');
+
+        // Get export URL
+        const fromDate = $('#groupsFromDate').val();
+        const toDate = $('#groupsToDate').val();
+        const fromDateAPI = convertDateForAPI(fromDate);
+        const toDateAPI = convertDateForAPI(toDate);
+        const exportQueryString = `req_type=rozklad&req_mode=group&OBJ_ID=${groupId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDateAPI}&end_date=${toDateAPI}&req_format=iCal&coding_mode=UTF8&bs=ok`;
+        const exportUrl = `/api/schedule/proxy?q=${encodeURIComponent(exportQueryString)}`;
+        
+        // Set export link directly to the proxy URL
+        $exportLink.attr('href', exportUrl);
+        $exportSection.removeClass('d-none');
+
+        // Display schedule
+        if (data.psrozklad_export && data.psrozklad_export.roz_items && data.psrozklad_export.roz_items.length > 0) {
+            const groupedSchedule = groupScheduleByDate(data.psrozklad_export.roz_items);
+            const groupName = getGroupName(groupId);
+            
+            let scheduleHtml = `<h5 class="mb-3">Розклад для: ${groupName}</h5>`;
             scheduleHtml += '<div class="row">';
             
             const sortedDates = Object.keys(groupedSchedule).sort(function(a, b) {
@@ -395,6 +932,30 @@ $(document).ready(function() {
             }
         }
         return 'Невідома аудиторія';
+    }
+
+    function getTeacherName(teacherId) {
+        for (const department of departments) {
+            if (department.objects) {
+                const teacher = department.objects.find(t => t.ID === teacherId);
+                if (teacher) {
+                    return `${teacher.P} ${teacher.I} ${teacher.B}`;
+                }
+            }
+        }
+        return 'Невідомий викладач';
+    }
+
+    function getGroupName(groupId) {
+        for (const department of groupDepartments) {
+            if (department.objects) {
+                const group = department.objects.find(g => g.ID === groupId);
+                if (group) {
+                    return group.name;
+                }
+            }
+        }
+        return 'Невідома група';
     }
 
     function createDayScheduleHtml(date, daySchedule) {
@@ -486,20 +1047,32 @@ $(document).ready(function() {
         }
     }
 
-    function showLoading(show) {
-        const $spinner = $('#searchBtn .spinner-border');
-        const $buttonText = $('#searchBtn').contents().filter(function() {
+    function showLoading(show, type = 'rooms') {
+        let $spinner, $buttonText, $button;
+        
+        if (type === 'rooms') {
+            $spinner = $('#searchRoomsBtn .spinner-border');
+            $button = $('#searchRoomsBtn');
+        } else if (type === 'teachers') {
+            $spinner = $('#searchTeachersBtn .spinner-border');
+            $button = $('#searchTeachersBtn');
+        } else if (type === 'groups') {
+            $spinner = $('#searchGroupsBtn .spinner-border');
+            $button = $('#searchGroupsBtn');
+        }
+        
+        $buttonText = $button.contents().filter(function() {
             return this.nodeType === 3;
         });
 
         if (show) {
             $spinner.removeClass('d-none');
             $buttonText.text(' Завантаження...');
-            $('#searchBtn').prop('disabled', true);
+            $button.prop('disabled', true);
         } else {
             $spinner.addClass('d-none');
             $buttonText.text('Знайти розклад');
-            $('#searchBtn').prop('disabled', false);
+            $button.prop('disabled', false);
         }
     }
 
