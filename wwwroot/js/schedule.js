@@ -189,11 +189,17 @@ $(document).ready(function() {
 
     function populateDepartments() {
         const $departmentSelect = $('#selectedDepartment');
+        const $teachingLoadDepartmentSelect = $('#teachingLoadDepartment');
+        
         $departmentSelect.empty();
         $departmentSelect.append('<option value="">Оберіть підрозділ</option>');
         
+        $teachingLoadDepartmentSelect.empty();
+        $teachingLoadDepartmentSelect.append('<option value="">Оберіть підрозділ</option>');
+        
         departments.forEach(function(department) {
             $departmentSelect.append(`<option value="${department.name}">${department.name}</option>`);
+            $teachingLoadDepartmentSelect.append(`<option value="${department.name}">${department.name}</option>`);
         });
     }
 
@@ -249,11 +255,26 @@ $(document).ready(function() {
                 </option>
             `);
         });
+
+        // Populate for teaching load
+        const $teachingLoadPeriodSelect = $('#teachingLoadPeriod');
+        $teachingLoadPeriodSelect.empty();
+        
+        periodOptions.forEach(function(period) {
+            $teachingLoadPeriodSelect.append(`
+                <option value="${period.value}" 
+                        data-from="${period.fromDate}" 
+                        data-to="${period.toDate}">
+                    ${period.label}
+                </option>
+            `);
+        });
         
         // Set default selection for all
         $periodSelect.val('to_end_of_week');
         $teachersPeriodSelect.val('to_end_of_week');
         $groupsPeriodSelect.val('to_end_of_week');
+        $teachingLoadPeriodSelect.val('to_end_of_week');
         updateDateFields();
         toggleDateInputs();
     }
@@ -307,6 +328,12 @@ $(document).ready(function() {
             toggleGroupsDateInputs();
         });
 
+        // Period selection change for teaching load
+        $('#teachingLoadPeriod').on('change', function() {
+            updateTeachingLoadDateFields();
+            toggleTeachingLoadDateInputs();
+        });
+
         // Form submissions
         $('#roomsScheduleForm').on('submit', function(e) {
             e.preventDefault();
@@ -321,6 +348,11 @@ $(document).ready(function() {
         $('#groupsScheduleForm').on('submit', function(e) {
             e.preventDefault();
             searchGroupsSchedule();
+        });
+
+        $('#teachingLoadForm').on('submit', function(e) {
+            e.preventDefault();
+            searchTeachingLoad();
         });
     }
 
@@ -518,6 +550,52 @@ $(document).ready(function() {
         }
     }
 
+    function updateTeachingLoadDateFields() {
+        const selectedPeriod = $('#teachingLoadPeriod option:selected');
+        const fromDate = selectedPeriod.data('from');
+        const toDate = selectedPeriod.data('to');
+        
+        if (fromDate && toDate) {
+            // Set dd.MM.yyyy format directly for Flatpickr
+            $('#teachingLoadFromDate').val(fromDate);
+            $('#teachingLoadToDate').val(toDate);
+            
+            // Update Flatpickr instances
+            if (window.teachingLoadFromDatePicker) {
+                window.teachingLoadFromDatePicker.setDate(fromDate, false, 'd.m.Y');
+            }
+            if (window.teachingLoadToDatePicker) {
+                window.teachingLoadToDatePicker.setDate(toDate, false, 'd.m.Y');
+            }
+        }
+    }
+
+    function toggleTeachingLoadDateInputs() {
+        const selectedPeriod = $('#teachingLoadPeriod').val();
+        const isCustomPeriod = selectedPeriod === 'custom';
+        
+        // Enable/disable date inputs based on period selection
+        $('#teachingLoadFromDate').prop('disabled', !isCustomPeriod);
+        $('#teachingLoadToDate').prop('disabled', !isCustomPeriod);
+        
+        // Update Flatpickr instances
+        if (window.teachingLoadFromDatePicker) {
+            if (isCustomPeriod) {
+                window.teachingLoadFromDatePicker.enable();
+            } else {
+                window.teachingLoadFromDatePicker.disable();
+            }
+        }
+        
+        if (window.teachingLoadToDatePicker) {
+            if (isCustomPeriod) {
+                window.teachingLoadToDatePicker.enable();
+            } else {
+                window.teachingLoadToDatePicker.disable();
+            }
+        }
+    }
+
     function searchRoomsSchedule() {
         const roomId = $('#selectedRoom').val();
         const fromDate = $('#fromDate').val();
@@ -662,6 +740,68 @@ $(document).ready(function() {
         });
     }
 
+    function searchTeachingLoad() {
+        const departmentName = $('#teachingLoadDepartment').val();
+        const fromDate = $('#teachingLoadFromDate').val();
+        const toDate = $('#teachingLoadToDate').val();
+
+        if (!departmentName || !fromDate || !toDate) {
+            showError('Необхідно заповнити всі поля');
+            return;
+        }
+
+        showLoading(true, 'teachingLoad');
+
+        // Get all teachers from the selected department
+        const selectedDepartment = departments.find(d => d.name === departmentName);
+        if (!selectedDepartment || !selectedDepartment.objects) {
+            showError('Підрозділ не знайдено');
+            showLoading(false, 'teachingLoad');
+            return;
+        }
+
+        const teacherIds = selectedDepartment.objects.map(teacher => teacher.ID);
+        const fromDateAPI = convertDateForAPI(fromDate);
+        const toDateAPI = convertDateForAPI(toDate);
+
+        // Fetch schedules for all teachers in the department
+        const teacherPromises = teacherIds.map(teacherId => {
+            const queryString = `req_type=rozklad&req_mode=teacher&OBJ_ID=${teacherId}&OBJ_name=&dep_name=&ros_text=united&begin_date=${fromDateAPI}&end_date=${toDateAPI}&req_format=json&coding_mode=UTF8&bs=ok`;
+            
+            return $.ajax({
+                url: '/api/schedule/proxy',
+                method: 'GET',
+                data: { q: queryString }
+            });
+        });
+
+        Promise.all(teacherPromises)
+            .then(function(responses) {
+                console.log('Teaching Load API responses:', responses);
+                
+                // Check for API errors in any response
+                for (let i = 0; i < responses.length; i++) {
+                    const data = responses[i];
+                    if (data.psrozklad_export && data.psrozklad_export.error) {
+                        const errorMsg = data.psrozklad_export.error.error_message || 'Невідома помилка API';
+                        const errorCode = data.psrozklad_export.error.errorcode || '';
+                        showError(`Помилка API (код: ${errorCode}): ${errorMsg}`);
+                        showLoading(false, 'teachingLoad');
+                        return;
+                    }
+                }
+                
+                displayTeachingLoad(responses, selectedDepartment.objects);
+                showLoading(false, 'teachingLoad');
+            })
+            .catch(function(error) {
+                console.error('Teaching Load API error:', error);
+                const errorDetails = getDetailedErrorMessage(error);
+                showError('Помилка завантаження навантаження: ' + errorDetails);
+                showLoading(false, 'teachingLoad');
+            });
+    }
+
     function formatDateForAPI(date) {
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -728,6 +868,23 @@ $(document).ready(function() {
             onChange: function(selectedDates, dateStr) {
                 // Ensure the input shows the correct format
                 $('#groupsToDate').val(dateStr);
+            }
+        });
+
+        // Teaching Load date pickers
+        window.teachingLoadFromDatePicker = flatpickr('#teachingLoadFromDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#teachingLoadFromDate').val(dateStr);
+            }
+        });
+
+        window.teachingLoadToDatePicker = flatpickr('#teachingLoadToDate', {
+            ...datePickerConfig,
+            onChange: function(selectedDates, dateStr) {
+                // Ensure the input shows the correct format
+                $('#teachingLoadToDate').val(dateStr);
             }
         });
     }
@@ -911,6 +1068,116 @@ $(document).ready(function() {
         $scheduleCard.removeClass('d-none');
     }
 
+    function displayTeachingLoad(responses, teachers) {
+        const $scheduleCard = $('#teachingLoadCard');
+        const $scheduleContent = $('#teachingLoadContent');
+
+        // Analyze session types and create workload matrix
+        const workloadMatrix = createWorkloadMatrix(responses, teachers);
+        
+        let scheduleHtml = '<div class="table-responsive">';
+        scheduleHtml += '<table class="table table-bordered table-sm">';
+        scheduleHtml += '<thead class="table-dark">';
+        scheduleHtml += '<tr><th>Викладач</th>';
+        
+        // Add session type headers
+        const sessionTypes = Object.keys(workloadMatrix.sessionTypes);
+        sessionTypes.forEach(function(sessionType) {
+            scheduleHtml += `<th class="text-center">${sessionType}</th>`;
+        });
+        scheduleHtml += '<th class="text-center table-primary">Всього</th>';
+        scheduleHtml += '</tr></thead><tbody>';
+        
+        // Add teacher rows
+        teachers.forEach(function(teacher) {
+            const teacherName = `${teacher.P} ${teacher.I} ${teacher.B}`;
+            scheduleHtml += '<tr>';
+            scheduleHtml += `<td class="fw-bold">${teacherName}</td>`;
+            
+            let totalHours = 0;
+            sessionTypes.forEach(function(sessionType) {
+                const hours = workloadMatrix.teacherWorkload[teacher.ID]?.[sessionType] || 0;
+                totalHours += hours;
+                scheduleHtml += `<td class="text-center">${hours}</td>`;
+            });
+            
+            scheduleHtml += `<td class="text-center fw-bold table-primary">${totalHours}</td>`;
+            scheduleHtml += '</tr>';
+        });
+        
+        scheduleHtml += '</tbody></table></div>';
+        
+        $scheduleContent.html(scheduleHtml);
+        $scheduleCard.removeClass('d-none');
+    }
+
+    function createWorkloadMatrix(responses, teachers) {
+        const sessionTypes = {};
+        const teacherWorkload = {};
+        
+        // Initialize teacher workload
+        teachers.forEach(function(teacher) {
+            teacherWorkload[teacher.ID] = {};
+        });
+        
+        // Process each teacher's schedule
+        responses.forEach(function(response, index) {
+            const teacherId = teachers[index].ID;
+            
+            if (response.psrozklad_export && response.psrozklad_export.roz_items) {
+                response.psrozklad_export.roz_items.forEach(function(item) {
+                    // Extract session type from lesson description
+                    const sessionType = extractSessionType(item.lesson_description);
+                    if (sessionType) {
+                        // Count this session type
+                        if (!sessionTypes[sessionType]) {
+                            sessionTypes[sessionType] = true;
+                        }
+                        
+                        if (!teacherWorkload[teacherId][sessionType]) {
+                            teacherWorkload[teacherId][sessionType] = 0;
+                        }
+                        
+                        // Each session counts as 2 hours
+                        teacherWorkload[teacherId][sessionType] += 2;
+                    }
+                });
+            }
+        });
+        
+        return {
+            sessionTypes: sessionTypes,
+            teacherWorkload: teacherWorkload
+        };
+    }
+
+    function extractSessionType(lessonDescription) {
+        if (!lessonDescription) return null;
+        
+        // Look for session type patterns in the lesson description
+        const patterns = [
+            /\(Лаб\)/i,    // Laboratory
+            /\(Л\)/i,      // Lecture
+            /\(Пр\)/i,     // Practice
+            /\(Сем\)/i,    // Seminar
+            /\(КЗ\)/i,     // Control work
+            /\(Зал\)/i,    // Credit
+            /\(Екз\)/i,    // Exam
+            /\(Курс\)/i,   // Course work
+            /\(Диплом\)/i, // Diploma
+            /\(Конс\)/i    // Consultation
+        ];
+        
+        for (let pattern of patterns) {
+            const match = lessonDescription.match(pattern);
+            if (match) {
+                return match[0];
+            }
+        }
+        
+        return null;
+    }
+
     function groupScheduleByDate(scheduleItems) {
         const grouped = {};
         scheduleItems.forEach(function(item) {
@@ -1059,6 +1326,9 @@ $(document).ready(function() {
         } else if (type === 'groups') {
             $spinner = $('#searchGroupsBtn .spinner-border');
             $button = $('#searchGroupsBtn');
+        } else if (type === 'teachingLoad') {
+            $spinner = $('#searchTeachingLoadBtn .spinner-border');
+            $button = $('#searchTeachingLoadBtn');
         }
         
         $buttonText = $button.contents().filter(function() {
@@ -1071,7 +1341,11 @@ $(document).ready(function() {
             $button.prop('disabled', true);
         } else {
             $spinner.addClass('d-none');
-            $buttonText.text('Знайти розклад');
+            if (type === 'teachingLoad') {
+                $buttonText.text('Розрахувати навантаження');
+            } else {
+                $buttonText.text('Знайти розклад');
+            }
             $button.prop('disabled', false);
         }
     }

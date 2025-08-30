@@ -32,6 +32,11 @@
                         <i class="bi bi-people"></i> Групи
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="teaching-load-tab" data-bs-toggle="tab" data-bs-target="#teaching-load" type="button" role="tab" aria-controls="teaching-load" aria-selected="false">
+                        <i class="bi bi-graph-up"></i> Навчальне навантаження
+                    </button>
+                </li>
             </ul>
 
             <!-- Tab Content -->
@@ -235,6 +240,67 @@
                                     <div id="groupsScheduleContent">
                                         <div class="text-center text-muted py-5">
                                             <i class="bi bi-calendar3 fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teaching Load Tab -->
+                <div class="tab-pane fade" id="teaching-load" role="tabpanel" aria-labelledby="teaching-load-tab">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <form id="teachingLoadForm">
+                                        <div class="form-row">
+                                            <div class="form-group mb-3">
+                                                <label for="teachingLoadDepartment" class="form-label">Підрозділ</label>
+                                                <select id="teachingLoadDepartment" name="teachingLoadDepartment" class="form-select" required>
+                                                    <option value="">Оберіть підрозділ</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="form-group mb-3">
+                                                <label for="teachingLoadPeriod" class="form-label">Період</label>
+                                                <select id="teachingLoadPeriod" name="teachingLoadPeriod" class="form-select">
+                                                </select>
+                                            </div>
+
+                                            <div class="form-group mb-3">
+                                                <label for="teachingLoadFromDate" class="form-label">Від дати</label>
+                                                <input type="text" id="teachingLoadFromDate" name="teachingLoadFromDate" class="form-control" placeholder="дд.мм.рррр" required>
+                                            </div>
+
+                                            <div class="form-group mb-3">
+                                                <label for="teachingLoadToDate" class="form-label">До дати</label>
+                                                <input type="text" id="teachingLoadToDate" name="teachingLoadToDate" class="form-control" placeholder="дд.мм.рррр" required>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-100" id="searchTeachingLoadBtn">
+                                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                            Розрахувати навантаження
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <div class="card d-none" id="teachingLoadCard">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div>
+                                            <h5 class="mb-0">Навчальне навантаження викладачів</h5>
+                                            <small class="text-muted">Кількість годин (кількість пар × 2)</small>
+                                        </div>
+                                    </div>
+                                    <div id="teachingLoadContent">
+                                        <div class="text-center text-muted py-5">
+                                            <i class="bi bi-graph-up fs-1"></i>
                                         </div>
                                     </div>
                                 </div>
