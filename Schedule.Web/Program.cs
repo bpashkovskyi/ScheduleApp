@@ -41,9 +41,13 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 
-// Use FastEndpoints
+// Use FastEndpoints (this must come BEFORE MapFallbackToFile)
 app.UseFastEndpoints();
 
+// Add Swagger UI for FastEndpoints
+app.UseSwaggerGen();
+
+// Map fallback to index.html AFTER FastEndpoints
 app.MapFallbackToFile("index.html");
 
 app.Run(); 
