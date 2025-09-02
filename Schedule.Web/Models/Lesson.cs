@@ -1,6 +1,6 @@
-﻿using ScheduleApp.Models.Enums;
+﻿using Schedule.Web.Models.Enums;
 
-namespace ScheduleApp.Models
+namespace Schedule.Web.Models
 {
     public class Lesson
     {
@@ -22,38 +22,37 @@ namespace ScheduleApp.Models
                     return default;
                 }
 
-                if (LessonDescription.Contains("(Лаб)"))
+                if (LessonDescription.Contains("(Лаб)", StringComparison.OrdinalIgnoreCase))
                 {
                     return LessonType.Laboratory;
                 }
 
-                if (LessonDescription.Contains("(Пр)"))
+                if (LessonDescription.Contains("(Пр)", StringComparison.OrdinalIgnoreCase))
                 {
                     return LessonType.Practical;
                 }
 
-                if (LessonDescription.Contains("(Зал)"))
+                if (LessonDescription.Contains("(Зал)", StringComparison.OrdinalIgnoreCase))
                 {
                     return LessonType.Credit;
                 }
 
-                if (LessonDescription.Contains("(КЕкз)"))
+                if (LessonDescription.Contains("(КЕкз)", StringComparison.OrdinalIgnoreCase))
                 {
                     return LessonType.ExamConsultation;
                 }
 
-                if (LessonDescription.Contains("(Екз)"))
+                if (LessonDescription.Contains("(Екз)", StringComparison.OrdinalIgnoreCase))
                 {
                     return LessonType.Exam;
                 }
 
-                if (LessonDescription.Contains("(Л)"))
+                if (LessonDescription.Contains("(Л)", StringComparison.OrdinalIgnoreCase))
                 {
                     return LessonType.Lecture;
                 }
 
-                throw new InvalidOperationException(
-                    $"Lesson Type is not recognized from description: {LessonDescription}");
+                return default; // Return default instead of throwing exception
             }
         }
 
@@ -67,12 +66,12 @@ namespace ScheduleApp.Models
                     return HourType.FullTime;
                 }
 
-                if (LessonDescription.Contains("мз-"))
+                if (LessonDescription.Contains("мз-", StringComparison.OrdinalIgnoreCase))
                 {
                     return HourType.Hourly;
                 }
 
-                if (LessonDescription.Contains("з-"))
+                if (LessonDescription.Contains("з-", StringComparison.OrdinalIgnoreCase))
                 {
                     return HourType.PartTime;
                 }
@@ -81,9 +80,11 @@ namespace ScheduleApp.Models
             }
         }
 
-        public bool HalfLesson => LessonDescription.Contains("півпара");
+        public bool HalfLesson => !string.IsNullOrWhiteSpace(LessonDescription) && 
+                                 LessonDescription.Contains("півпара", StringComparison.OrdinalIgnoreCase);
 
-        public bool Substitution => LessonDescription.Contains("Увага! Заміна"); // todo: double check
+        public bool Substitution => !string.IsNullOrWhiteSpace(LessonDescription) && 
+                                  LessonDescription.Contains("Увага! Заміна", StringComparison.OrdinalIgnoreCase);
 
         public int LessonHours
         {
@@ -102,6 +103,5 @@ namespace ScheduleApp.Models
                 return 2;
             }
         }
-
     }
 }

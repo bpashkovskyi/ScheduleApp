@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 
-namespace ScheduleApp.Controllers.Api;
+namespace Schedule.Web.Controllers.Api;
 
 [ApiController]
 [Route("api/[controller]")]

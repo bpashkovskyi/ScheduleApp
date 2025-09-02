@@ -1,4 +1,4 @@
-﻿namespace ScheduleApp.Models.Enums;
+﻿namespace Schedule.Web.Models.Enums;
 
 public enum LessonType
 {
