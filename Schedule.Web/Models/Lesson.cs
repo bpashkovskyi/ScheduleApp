@@ -52,7 +52,8 @@ namespace ScheduleApp.Models
                     return LessonType.Lecture;
                 }
 
-                return default; // or throw exception if you want strict behavior
+                throw new InvalidOperationException(
+                    $"Lesson Type is not recognized from description: {LessonDescription}");
             }
         }
 
