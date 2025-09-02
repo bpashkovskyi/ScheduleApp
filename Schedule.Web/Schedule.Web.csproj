@@ -7,12 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FastEndpoints" Version="5.20.1" />
+    <PackageReference Include="FastEndpoints.Swagger" Version="5.20.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="NewFolder\**" />
     <Content Remove="NewFolder\**" />
     <EmbeddedResource Remove="NewFolder\**" />
     <None Remove="NewFolder\**" />
   </ItemGroup>
-
-
 
 </Project> 

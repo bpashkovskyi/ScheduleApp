@@ -1,7 +1,16 @@
+using FastEndpoints;
+using FastEndpoints.Swagger;
+using Schedule.Web.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddFastEndpoints();
+builder.Services.SwaggerDocument();
+
+// Add custom services
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<ILessonMapper, LessonMapper>();
 builder.Services.AddHttpClient();
 
 // Add CORS for static files
@@ -29,9 +38,9 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 
-app.MapControllers();
+// Use FastEndpoints
+app.UseFastEndpoints();
 
-// Serve index.html for the root path
 app.MapFallbackToFile("index.html");
 
 app.Run(); 
