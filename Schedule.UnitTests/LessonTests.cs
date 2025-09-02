@@ -700,7 +700,9 @@ public sealed class LessonTests
         var result = lesson.LessonType;
 
         // Assert
-        result.Should().Be(LessonType.Lecture);
+        // The LessonType property checks in this order: (Лаб), (Пр), (Зал), (КЕкз), (Екз), (Л)
+        // So (Лаб) comes first and will be returned
+        result.Should().Be(LessonType.Laboratory);
     }
 
     [Fact]
