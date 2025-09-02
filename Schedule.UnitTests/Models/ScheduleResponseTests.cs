@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Schedule.Web.Models;
 using Schedule.Web.Models.Api;
 using Xunit;
 

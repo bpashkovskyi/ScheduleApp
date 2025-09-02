@@ -1,5 +1,5 @@
-using Schedule.Web.Models;
 using Schedule.Web.Models.Api;
+using Schedule.Web.Models.Domain;
 
 namespace Schedule.Web.Services;
 

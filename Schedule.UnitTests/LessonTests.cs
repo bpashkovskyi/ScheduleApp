@@ -1,6 +1,7 @@
 using FluentAssertions;
-using Schedule.Web.Models;
-using Schedule.Web.Models.Enums;
+using Schedule.Web.Models.Domain;
+using Schedule.Web.Models.Domain.Enums;
+
 using Xunit;
 
 namespace Schedule.UnitTests;

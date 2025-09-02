@@ -1,5 +1,3 @@
-using FastEndpoints;
-
 namespace Schedule.Web.Endpoints.TeacherSchedule;
 
 public sealed class TeacherScheduleRequest

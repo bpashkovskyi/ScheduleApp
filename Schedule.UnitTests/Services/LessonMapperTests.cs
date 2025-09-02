@@ -1,7 +1,9 @@
 using FluentAssertions;
-using Schedule.Web.Models;
+
 using Schedule.Web.Models.Api;
+using Schedule.Web.Models.Domain;
 using Schedule.Web.Services;
+
 using Xunit;
 
 namespace Schedule.UnitTests.Services;

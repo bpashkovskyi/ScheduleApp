@@ -1,11 +1,10 @@
-using FastEndpoints;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Schedule.Web.Endpoints.TeacherSchedule;
 using Schedule.Web.Services;
-using Schedule.Web.Models;
 using Xunit;
+using Schedule.Web.Models.Domain;
 
 namespace Schedule.UnitTests.Endpoints;
 

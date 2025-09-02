@@ -1,5 +1,3 @@
-using FastEndpoints;
-
 namespace Schedule.Web.Endpoints.Proxy;
 
 public sealed class ProxyRequest

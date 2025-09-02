@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Schedule.Web.Services;
-using Schedule.Web.Models;
 using Xunit;
 
 namespace Schedule.UnitTests;

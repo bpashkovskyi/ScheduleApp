@@ -1,6 +1,6 @@
-﻿using Schedule.Web.Models.Enums;
+﻿using Schedule.Web.Models.Domain.Enums;
 
-namespace Schedule.Web.Models
+namespace Schedule.Web.Models.Domain
 {
     public class Lesson
     {

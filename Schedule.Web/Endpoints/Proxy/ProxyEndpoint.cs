@@ -1,5 +1,4 @@
 using FastEndpoints;
-using Microsoft.AspNetCore.Http;
 using Schedule.Web.Services;
 
 namespace Schedule.Web.Endpoints.Proxy;

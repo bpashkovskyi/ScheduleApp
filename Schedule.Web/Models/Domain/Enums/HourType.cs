@@ -1,4 +1,4 @@
-﻿namespace Schedule.Web.Models.Enums;
+﻿namespace Schedule.Web.Models.Domain.Enums;
 
 public enum HourType
 {
