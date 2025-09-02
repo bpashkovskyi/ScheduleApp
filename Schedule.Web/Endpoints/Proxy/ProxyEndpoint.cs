@@ -20,8 +20,6 @@ public sealed class ProxyEndpoint : Endpoint<ProxyRequest, string>
         AllowAnonymous();
         Description(description => description
             .WithName("Proxy")
-            .WithTags("Schedule")
-            .WithGroupName("Schedule API")
             .WithSummary("Proxy request to external schedule API")
             .WithDescription("Forwards requests to the external schedule API and returns the response"));
     }

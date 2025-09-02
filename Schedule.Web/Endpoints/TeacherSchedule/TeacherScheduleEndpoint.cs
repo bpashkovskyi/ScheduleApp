@@ -20,8 +20,6 @@ public sealed class TeacherScheduleEndpoint : Endpoint<TeacherScheduleRequest, T
         AllowAnonymous();
         Description(description => description
             .WithName("GetTeacherSchedule")
-            .WithTags("Schedule")
-            .WithGroupName("Schedule API")
             .WithSummary("Get teacher schedule for a specific month")
             .WithDescription("Retrieves the schedule for a specific teacher in a given month"));
     }
