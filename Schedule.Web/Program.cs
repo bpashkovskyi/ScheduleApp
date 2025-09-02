@@ -8,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddFastEndpoints();
 builder.Services.SwaggerDocument();
 
+// Add authorization services
+builder.Services.AddAuthorization();
+
 // Add custom services
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<ILessonMapper, LessonMapper>();

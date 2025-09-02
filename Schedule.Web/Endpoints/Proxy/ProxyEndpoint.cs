@@ -3,7 +3,7 @@ using Schedule.Web.Services;
 
 namespace Schedule.Web.Endpoints.Proxy;
 
-public sealed class ProxyEndpoint : Endpoint<ProxyRequest, ProxyResponse>
+public sealed class ProxyEndpoint : Endpoint<ProxyRequest, string>
 {
     private readonly IScheduleService _scheduleService;
     private readonly ILogger<ProxyEndpoint> _logger;
@@ -37,7 +37,7 @@ public sealed class ProxyEndpoint : Endpoint<ProxyRequest, ProxyResponse>
             }
 
             var response = await _scheduleService.GetProxyDataAsync(request.Q);
-            await SendAsync(new ProxyResponse { Content = response }, cancellation: cancellationToken);
+            await SendStringAsync(response, 200, "application/json", cancellationToken);
         }
         catch (Exception exception)
         {
