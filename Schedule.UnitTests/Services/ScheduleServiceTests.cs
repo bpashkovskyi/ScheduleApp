@@ -1,10 +1,14 @@
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging;
+
 using Moq;
+
 using Schedule.Web.Services;
+
 using Xunit;
 
-namespace Schedule.UnitTests;
+namespace Schedule.UnitTests.Services;
 
 public sealed class ScheduleServiceTests
 {

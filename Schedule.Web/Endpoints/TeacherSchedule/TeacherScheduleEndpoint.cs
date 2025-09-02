@@ -1,5 +1,7 @@
 using FastEndpoints;
 using Schedule.Web.Services;
+using Schedule.Web.Models.Domain;
+using Schedule.Web.Models.Domain.Enums;
 
 namespace Schedule.Web.Endpoints.TeacherSchedule;
 
@@ -44,13 +46,16 @@ public sealed class TeacherScheduleEndpoint : Endpoint<TeacherScheduleRequest, T
 
             // Get teacher schedule data from external API
             var lessons = await _scheduleService.GetTeacherScheduleDataAsync(request.TeacherId, request.MonthId);
+            lessons = lessons.Where(lesson => !string.IsNullOrEmpty(lesson.LessonDescription)).ToList();
 
+            // Group lessons by type and hour type
             var response = new TeacherScheduleResponse
             {
                 TeacherId = request.TeacherId,
                 MonthId = request.MonthId,
-                LessonsCount = lessons.Count,
-                Lessons = lessons
+                FullTime = GroupLessonsByType(lessons.Where(l => l.HourType == HourType.FullTime)),
+                PartTime = GroupLessonsByType(lessons.Where(l => l.HourType == HourType.PartTime)),
+                Hourly = GroupLessonsByType(lessons.Where(l => l.HourType == HourType.Hourly))
             };
 
             await SendAsync(response, cancellation: cancellationToken);
@@ -61,5 +66,47 @@ public sealed class TeacherScheduleEndpoint : Endpoint<TeacherScheduleRequest, T
             AddError("An error occurred while processing the request");
             await SendErrorsAsync(500, cancellationToken);
         }
+    }
+
+    private static HourTypeSchedule GroupLessonsByType(IEnumerable<Lesson> lessons)
+    {
+        var schedule = new HourTypeSchedule();
+        
+        foreach (var lesson in lessons)
+        {
+            var lessonItem = new LessonItem
+            {
+                Description = $"{lesson.LessonDescription} {lesson.Date} {lesson.LessonTime}",
+                Hours = lesson.LessonHours
+            };
+
+            switch (lesson.LessonType)
+            {
+                case LessonType.Lecture:
+                    schedule.Lectures.Add(lessonItem);
+                    break;
+                case LessonType.Practical:
+                    schedule.Practice.Add(lessonItem);
+                    break;
+                case LessonType.Laboratory:
+                    schedule.Labs.Add(lessonItem);
+                    break;
+                case LessonType.Credit:
+                    schedule.Credits.Add(lessonItem);
+                    break;
+                case LessonType.ExamConsultation:
+                    schedule.ExamConsultations.Add(lessonItem);
+                    break;
+                case LessonType.Exam:
+                    schedule.Exams.Add(lessonItem);
+                    break;
+                default:
+                    // For lessons without a specific type, add to lectures as default
+                    schedule.Lectures.Add(lessonItem);
+                    break;
+            }
+        }
+
+        return schedule;
     }
 }
