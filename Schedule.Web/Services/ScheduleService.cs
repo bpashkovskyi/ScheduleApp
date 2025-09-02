@@ -44,9 +44,9 @@ public sealed class ScheduleService : IScheduleService
             // Convert API response models to domain models
             return _lessonMapper.ToDomainList(lessonResponses);
         }
-        catch (JsonException ex)
+        catch (JsonException exception)
         {
-            _logger.LogError(ex, "Error deserializing schedule response for teacher {TeacherId} in month {MonthId}", teacherId, monthId);
+            _logger.LogError(exception, "Error deserializing schedule response for teacher {TeacherId} in month {MonthId}", teacherId, monthId);
             return new List<Lesson>();
         }
     }

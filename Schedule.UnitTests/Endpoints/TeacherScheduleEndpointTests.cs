@@ -55,7 +55,7 @@ public sealed class TeacherScheduleEndpointTests
         await _endpoint.HandleAsync(request, CancellationToken.None);
 
         // Assert
-        _endpoint.ValidationFailures.Should().ContainSingle(f => f.PropertyName == "TeacherId");
+        _endpoint.ValidationFailures.Should().ContainSingle(validationFailure => validationFailure.PropertyName == "TeacherId");
     }
 
     [Theory]
@@ -71,7 +71,7 @@ public sealed class TeacherScheduleEndpointTests
         await _endpoint.HandleAsync(request, CancellationToken.None);
 
         // Assert
-        _endpoint.ValidationFailures.Should().ContainSingle(f => f.PropertyName == "MonthId");
+        _endpoint.ValidationFailures.Should().ContainSingle(validationFailure => validationFailure.PropertyName == "MonthId");
     }
 
     [Theory]
@@ -85,7 +85,7 @@ public sealed class TeacherScheduleEndpointTests
         var expectedLessons = new List<Lesson>();
         
         _mockScheduleService
-            .Setup(s => s.GetTeacherScheduleDataAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .Setup(scheduleService => scheduleService.GetTeacherScheduleDataAsync(It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync(expectedLessons);
 
         // Act
@@ -93,6 +93,6 @@ public sealed class TeacherScheduleEndpointTests
 
         // Assert
         _endpoint.ValidationFailures.Should().BeEmpty();
-        _mockScheduleService.Verify(s => s.GetTeacherScheduleDataAsync(teacherId, monthId), Times.Once);
+        _mockScheduleService.Verify(scheduleService => scheduleService.GetTeacherScheduleDataAsync(teacherId, monthId), Times.Once);
     }
 }

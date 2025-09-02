@@ -19,49 +19,49 @@ public sealed class TeacherScheduleEndpoint : Endpoint<TeacherScheduleRequest, T
     {
         Get("/api/schedule/teacher-schedule");
         AllowAnonymous();
-        Description(d => d
+        Description(description => description
             .WithName("GetTeacherSchedule")
             .WithTags("Schedule")
             .WithSummary("Get teacher schedule for a specific month")
             .WithDescription("Retrieves the schedule for a specific teacher in a given month"));
     }
 
-    public override async Task HandleAsync(TeacherScheduleRequest req, CancellationToken ct)
+    public override async Task HandleAsync(TeacherScheduleRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            if (req.TeacherId <= 0)
+            if (request.TeacherId <= 0)
             {
-                AddError(r => r.TeacherId, "Teacher ID must be a positive number");
-                await SendErrorsAsync(400, ct);
+                AddError(teacherScheduleRequest => teacherScheduleRequest.TeacherId, "Teacher ID must be a positive number");
+                await SendErrorsAsync(400, cancellationToken);
                 return;
             }
 
-            if (req.MonthId is < 1 or > 12)
+            if (request.MonthId is < 1 or > 12)
             {
-                AddError(r => r.MonthId, "Month ID must be between 1 and 12");
-                await SendErrorsAsync(400, ct);
+                AddError(teacherScheduleRequest => teacherScheduleRequest.MonthId, "Month ID must be between 1 and 12");
+                await SendErrorsAsync(400, cancellationToken);
                 return;
             }
 
             // Get teacher schedule data from external API
-            var lessons = await _scheduleService.GetTeacherScheduleDataAsync(req.TeacherId, req.MonthId);
+            var lessons = await _scheduleService.GetTeacherScheduleDataAsync(request.TeacherId, request.MonthId);
 
             var response = new TeacherScheduleResponse
             {
-                TeacherId = req.TeacherId,
-                MonthId = req.MonthId,
+                TeacherId = request.TeacherId,
+                MonthId = request.MonthId,
                 LessonsCount = lessons.Count,
                 Lessons = lessons
             };
 
-            await SendAsync(response, cancellation: ct);
+            await SendAsync(response, cancellation: cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError(ex, "Error getting teacher schedule for teacher {TeacherId} in month {MonthId}", req.TeacherId, req.MonthId);
+            _logger.LogError(exception, "Error getting teacher schedule for teacher {TeacherId} in month {MonthId}", request.TeacherId, request.MonthId);
             AddError("An error occurred while processing the request");
-            await SendErrorsAsync(500, ct);
+            await SendErrorsAsync(500, cancellationToken);
         }
     }
 }

@@ -14,13 +14,13 @@ builder.Services.AddScoped<ILessonMapper, LessonMapper>();
 builder.Services.AddHttpClient();
 
 // Add CORS for static files
-builder.Services.AddCors(options =>
+builder.Services.AddCors(corsOptions =>
 {
-    options.AddDefaultPolicy(policy =>
+    corsOptions.AddDefaultPolicy(corsPolicy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        corsPolicy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
     });
 });
 

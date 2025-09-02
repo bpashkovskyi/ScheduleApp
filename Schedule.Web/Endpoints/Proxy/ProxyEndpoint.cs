@@ -19,32 +19,32 @@ public sealed class ProxyEndpoint : Endpoint<ProxyRequest, ProxyResponse>
     {
         Get("/api/schedule/proxy");
         AllowAnonymous();
-        Description(d => d
+        Description(description => description
             .WithName("Proxy")
             .WithTags("Schedule")
             .WithSummary("Proxy request to external schedule API")
             .WithDescription("Forwards requests to the external schedule API and returns the response"));
     }
 
-    public override async Task HandleAsync(ProxyRequest req, CancellationToken ct)
+    public override async Task HandleAsync(ProxyRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            if (string.IsNullOrEmpty(req.Q))
+            if (string.IsNullOrEmpty(request.Q))
             {
-                AddError(r => r.Q, "Query parameter 'q' is required");
-                await SendErrorsAsync(400, ct);
+                AddError(proxyRequest => proxyRequest.Q, "Query parameter 'q' is required");
+                await SendErrorsAsync(400, cancellationToken);
                 return;
             }
 
-            var response = await _scheduleService.GetProxyDataAsync(req.Q);
-            await SendAsync(new ProxyResponse { Content = response }, cancellation: ct);
+            var response = await _scheduleService.GetProxyDataAsync(request.Q);
+            await SendAsync(new ProxyResponse { Content = response }, cancellation: cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError(ex, "Error proxying request to external API");
+            _logger.LogError(exception, "Error proxying request to external API");
             AddError("An error occurred while processing the request");
-            await SendErrorsAsync(500, ct);
+            await SendErrorsAsync(500, cancellationToken);
         }
     }
 }

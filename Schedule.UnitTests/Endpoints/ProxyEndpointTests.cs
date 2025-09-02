@@ -49,14 +49,14 @@ public sealed class ProxyEndpointTests
         var expectedResponse = "test response";
         
         _mockScheduleService
-            .Setup(s => s.GetProxyDataAsync(It.IsAny<string>()))
+            .Setup(scheduleService => scheduleService.GetProxyDataAsync(It.IsAny<string>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         await _endpoint.HandleAsync(request, CancellationToken.None);
 
         // Assert
-        _mockScheduleService.Verify(s => s.GetProxyDataAsync("test=query"), Times.Once);
+        _mockScheduleService.Verify(scheduleService => scheduleService.GetProxyDataAsync("test=query"), Times.Once);
     }
 
     [Fact]
@@ -69,6 +69,6 @@ public sealed class ProxyEndpointTests
         await _endpoint.HandleAsync(request, CancellationToken.None);
 
         // Assert
-        _endpoint.ValidationFailures.Should().ContainSingle(f => f.PropertyName == "Q");
+        _endpoint.ValidationFailures.Should().ContainSingle(validationFailure => validationFailure.PropertyName == "Q");
     }
 }
